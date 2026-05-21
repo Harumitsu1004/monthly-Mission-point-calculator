@@ -89,6 +89,13 @@
       opacity: 0.9;
     }
 
+    button:disabled {
+      background: #c7c7cc;
+      color: #ffffff;
+      cursor: not-allowed;
+      opacity: 1;
+    }
+
     .error {
       margin-top: 18px;
       padding: 12px;
@@ -200,13 +207,13 @@
     <div class="form-grid">
       <div>
         <label for="currentPoint">現在のP</label>
-        <input id="currentPoint" type="number" min="0" max="11999" step="1" value="0" oninput="validateAllInputs()" />
+        <input id="currentPoint" type="number" min="0" max="11999" step="1" placeholder="例: 9000" oninput="validateAllInputs()" />
         <div id="currentPointError" class="field-error">ミッションポイントは0〜11999の範囲で入力してください。</div>
       </div>
 
       <div>
         <label for="currentLiveBonus">現在のライブボーナス数</label>
-        <input id="currentLiveBonus" type="number" min="0" max="999" step="1" value="0" oninput="validateAllInputs()" />
+        <input id="currentLiveBonus" type="number" min="0" max="999" step="1" placeholder="例: 50" oninput="validateAllInputs()" />
         <div id="currentLiveBonusError" class="field-error">現在のライブボーナス数は0〜999の範囲で入力してください。</div>
       </div>
 
@@ -248,7 +255,7 @@
       </div>
     </div>
 
-    <button type="button" onclick="onCalculate()">計算する</button>
+    <button id="calculateButton" type="button" onclick="onCalculate()" disabled>計算する</button>
 
     <div id="error" class="error"></div>
 
@@ -565,8 +572,12 @@
       );
 
       const isBonusConsumptionValid = validateBonusConsumption();
+      const canCalculate = isCurrentPointValid && isCurrentLiveBonusValid && isBonusConsumptionValid;
+      const calculateButton = document.getElementById("calculateButton");
 
-      return isCurrentPointValid && isCurrentLiveBonusValid && isBonusConsumptionValid;
+      calculateButton.disabled = !canCalculate;
+
+      return canCalculate;
     }
 
     function hideError() {
