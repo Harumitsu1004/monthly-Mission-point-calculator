@@ -98,6 +98,19 @@
       display: none;
     }
 
+    .field-error {
+      margin-top: 6px;
+      color: #b00020;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      display: none;
+    }
+
+    input.invalid, select.invalid {
+      border-color: #b00020;
+      background: #fff7f7;
+    }
+
     .result {
       display: none;
       margin-top: 28px;
@@ -187,17 +200,19 @@
     <div class="form-grid">
       <div>
         <label for="currentPoint">現在のP</label>
-        <input id="currentPoint" type="number" min="0" step="1" value="9000" />
+        <input id="currentPoint" type="number" min="0" max="11999" step="1" value="900" oninput="validateAllInputs()" />
+        <div id="currentPointError" class="field-error">ミッションポイントは0〜11999の範囲で入力してください。</div>
       </div>
 
       <div>
         <label for="currentLiveBonus">現在のライブボーナス数</label>
-        <input id="currentLiveBonus" type="number" min="0" step="1" value="50" />
+        <input id="currentLiveBonus" type="number" min="0" max="999" step="1" value="50" oninput="validateAllInputs()" />
+        <div id="currentLiveBonusError" class="field-error">現在のライブボーナス数は0〜999の範囲で入力してください。</div>
       </div>
 
       <div>
         <label for="bonusConsumption">1回のライブボーナス消費量</label>
-        <select id="bonusConsumption">
+        <select id="bonusConsumption" onchange="validateAllInputs()">
           <option value="0">0</option>
           <option value="1" selected>1</option>
           <option value="2">2</option>
@@ -215,6 +230,16 @@
       <div class="checkbox-row">
         <input id="hasColorfulPass" type="checkbox" checked />
         <label for="hasColorfulPass">カラフルパスを所持している</label>
+      </div>
+
+      <div class="checkbox-row">
+        <input id="doCm" type="checkbox" checked />
+        <label for="doCm">毎日CMを見る</label>
+      </div>
+
+      <div class="checkbox-row">
+        <input id="doMultiLive" type="checkbox" checked />
+        <label for="doMultiLive">毎日みんなでライブを3回行う</label>
       </div>
 
       <div class="checkbox-row">
@@ -274,6 +299,12 @@
 
   <script>
     const TARGET_POINT = 12000;
+    const CURRENT_POINT_MIN = 0;
+    const CURRENT_POINT_MAX = 11999;
+    const LIVE_BONUS_MIN = 0;
+    const LIVE_BONUS_MAX = 999;
+    const BONUS_CONSUMPTION_MIN = 0;
+    const BONUS_CONSUMPTION_MAX = 10;
 
     const POINT_TABLE = {
       0: 1,
@@ -381,18 +412,20 @@
       currentLiveBonus,
       bonusConsumption,
       hasColorfulPass,
+      doCm,
+      doMultiLive,
       includeToday = true
     ) {
       if (!(bonusConsumption in POINT_TABLE)) {
         throw new Error("ボーナス消費量は0〜10の範囲で選択してください。");
       }
 
-      if (currentPoint < 0) {
-        throw new Error("現在のPは0以上で入力してください。");
+      if (currentPoint < CURRENT_POINT_MIN || currentPoint > CURRENT_POINT_MAX) {
+        throw new Error(`ミッションポイントは${CURRENT_POINT_MIN}〜${CURRENT_POINT_MAX}の範囲で入力してください。`);
       }
 
-      if (currentLiveBonus < 0) {
-        throw new Error("現在のライブボーナス数は0以上で入力してください。");
+      if (currentLiveBonus < LIVE_BONUS_MIN || currentLiveBonus > LIVE_BONUS_MAX) {
+        throw new Error(`現在のライブボーナス数は${LIVE_BONUS_MIN}〜${LIVE_BONUS_MAX}の範囲で入力してください。`);
       }
 
       const remainingDays = getRemainingDaysInMonth(includeToday);
@@ -420,9 +453,9 @@
       const fixedPoint = calculateDailyFixedPoints(
         remainingDays,
         hasColorfulPass,
+        doCm,
         true,
-        true,
-        3
+        doMultiLive ? 3 : 0
       );
 
       const requiredAfterFixedRaw = remainingPoint - fixedPoint;
@@ -464,6 +497,78 @@
       document.getElementById(id).textContent = text;
     }
 
+    function setFieldError(inputId, errorId, message) {
+      const input = document.getElementById(inputId);
+      const error = document.getElementById(errorId);
+
+      if (message) {
+        input.classList.add("invalid");
+        error.textContent = message;
+        error.style.display = "block";
+        return false;
+      }
+
+      input.classList.remove("invalid");
+      error.textContent = "";
+      error.style.display = "none";
+      return true;
+    }
+
+    function validateIntegerRange(inputId, errorId, label, min, max) {
+      const input = document.getElementById(inputId);
+      const rawValue = input.value;
+      const value = Number(rawValue);
+
+      if (rawValue === "") {
+        return setFieldError(inputId, errorId, `${label}を入力してください。`);
+      }
+
+      if (!Number.isFinite(value) || !Number.isInteger(value)) {
+        return setFieldError(inputId, errorId, `${label}は整数で入力してください。`);
+      }
+
+      if (value < min || value > max) {
+        return setFieldError(inputId, errorId, `${label}は${min}〜${max}の範囲で入力してください。`);
+      }
+
+      return setFieldError(inputId, errorId, "");
+    }
+
+    function validateBonusConsumption() {
+      const select = document.getElementById("bonusConsumption");
+      const value = Number(select.value);
+
+      if (!Number.isFinite(value) || !Number.isInteger(value) || value < BONUS_CONSUMPTION_MIN || value > BONUS_CONSUMPTION_MAX) {
+        select.classList.add("invalid");
+        return false;
+      }
+
+      select.classList.remove("invalid");
+      return true;
+    }
+
+    function validateAllInputs() {
+      const isCurrentPointValid = validateIntegerRange(
+        "currentPoint",
+        "currentPointError",
+        "ミッションポイント",
+        CURRENT_POINT_MIN,
+        CURRENT_POINT_MAX
+      );
+
+      const isCurrentLiveBonusValid = validateIntegerRange(
+        "currentLiveBonus",
+        "currentLiveBonusError",
+        "現在のライブボーナス数",
+        LIVE_BONUS_MIN,
+        LIVE_BONUS_MAX
+      );
+
+      const isBonusConsumptionValid = validateBonusConsumption();
+
+      return isCurrentPointValid && isCurrentLiveBonusValid && isBonusConsumptionValid;
+    }
+
     function hideError() {
       const error = document.getElementById("error");
       error.style.display = "none";
@@ -484,12 +589,18 @@
       const currentLiveBonus = Number(document.getElementById("currentLiveBonus").value);
       const bonusConsumption = Number(document.getElementById("bonusConsumption").value);
       const hasColorfulPass = document.getElementById("hasColorfulPass").checked;
+      const doCm = document.getElementById("doCm").checked;
+      const doMultiLive = document.getElementById("doMultiLive").checked;
       const todayDone = document.getElementById("todayDone").checked;
       const includeToday = !todayDone;
 
       try {
+        if (!validateAllInputs()) {
+          throw new Error("入力内容を確認してください。");
+        }
+
         if (!Number.isFinite(currentPoint) || !Number.isInteger(currentPoint)) {
-          throw new Error("現在のPは整数で入力してください。");
+          throw new Error("ミッションポイントは整数で入力してください。");
         }
 
         if (!Number.isFinite(currentLiveBonus) || !Number.isInteger(currentLiveBonus)) {
@@ -501,6 +612,8 @@
           currentLiveBonus,
           bonusConsumption,
           hasColorfulPass,
+          doCm,
+          doMultiLive,
           includeToday
         );
 
@@ -528,6 +641,8 @@
         showError(error.message);
       }
     }
+
+    validateAllInputs();
   </script>
 </body>
 </html>
