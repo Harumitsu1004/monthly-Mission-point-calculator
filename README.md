@@ -1,1 +1,1 @@
-# -monthly-point-calculator
+# monthly-mission-point-calculator
