@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>月間ポイント計算ツール</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f7;
+      color: #1d1d1f;
+      margin: 0;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      font-size: 1.7rem;
+      margin: 0 0 8px;
+    }
+
+    .description {
+      color: #555;
+      margin-bottom: 24px;
+      line-height: 1.7;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    label {
+      font-weight: 700;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    input[type="number"], select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 11px 12px;
+      border: 1px solid #c9c9cf;
+      border-radius: 10px;
+      font-size: 1rem;
+      background: #fff;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+    }
+
+    .checkbox-row input {
+      width: 18px;
+      height: 18px;
+    }
+
+    .checkbox-row label {
+      margin: 0;
+      font-weight: 600;
+    }
+
+    button {
+      margin-top: 22px;
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      background: #007aff;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .error {
+      margin-top: 18px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #fff0f0;
+      color: #b00020;
+      display: none;
+    }
+
+    .result {
+      display: none;
+      margin-top: 28px;
+      border-top: 1px solid #e5e5ea;
+      padding-top: 20px;
+    }
+
+    .result h2 {
+      font-size: 1.25rem;
+      margin: 24px 0 10px;
+    }
+
+    .result h2:first-child {
+      margin-top: 0;
+    }
+
+    .summary-card {
+      background: #f0f7ff;
+      border-radius: 14px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+
+    .summary-card strong {
+      display: block;
+      font-size: 1.8rem;
+      margin-top: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+
+    th, td {
+      padding: 11px 8px;
+      border-bottom: 1px solid #e5e5ea;
+      text-align: left;
+    }
+
+    th {
+      width: 52%;
+      color: #555;
+      font-weight: 600;
+    }
+
+    .note {
+      margin-top: 18px;
+      color: #666;
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 520px) {
+      body {
+        padding: 12px;
+      }
+
+      .container {
+        padding: 18px;
+      }
+
+      h1 {
+        font-size: 1.45rem;
+      }
+
+      th, td {
+        display: block;
+        width: 100%;
+        padding: 8px 4px;
+      }
+
+      td {
+        padding-top: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>月間ポイント計算ツール</h1>
+    <p class="description">
+      現在のポイント、ライブボーナス、消費量などを入力すると、月末までに必要なライブ回数とライブボーナス不足分を計算します。
+    </p>
+
+    <div class="form-grid">
+      <div>
+        <label for="currentPoint">現在のP</label>
+        <input id="currentPoint" type="number" min="0" step="1" value="9000" />
+      </div>
+
+      <div>
+        <label for="currentLiveBonus">現在のライブボーナス数</label>
+        <input id="currentLiveBonus" type="number" min="0" step="1" value="50" />
+      </div>
+
+      <div>
+        <label for="bonusConsumption">1回のライブボーナス消費量</label>
+        <select id="bonusConsumption">
+          <option value="0">0</option>
+          <option value="1" selected>1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+          <option value="9">9</option>
+          <option value="10">10</option>
+        </select>
+      </div>
+
+      <div class="checkbox-row">
+        <input id="hasColorfulPass" type="checkbox" checked />
+        <label for="hasColorfulPass">カラフルパスを所持している</label>
+      </div>
+
+      <div class="checkbox-row">
+        <input id="todayDone" type="checkbox" />
+        <label for="todayDone">今日のCM・チャレンジライブ・みんなでライブ3回は消化済み</label>
+      </div>
+    </div>
+
+    <button type="button" onclick="onCalculate()">計算する</button>
+
+    <div id="error" class="error"></div>
+
+    <section id="result" class="result">
+      <h2>計算結果</h2>
+      <div class="summary-card">
+        月末までに必要な最小ライブ回数
+        <strong><span id="requiredLivesSummary">0</span>回</strong>
+      </div>
+
+      <table>
+        <tbody>
+          <tr><th>月間目標</th><td id="targetPoint"></td></tr>
+          <tr><th>現在のP</th><td id="displayCurrentPoint"></td></tr>
+          <tr><th>今月の残り日数</th><td id="remainingDays"></td></tr>
+          <tr><th>目標までの残りP</th><td id="remainingPoint"></td></tr>
+          <tr><th>残り日数で固定獲得できるP</th><td id="fixedPoint"></td></tr>
+          <tr><th>固定分を引いた後に必要なP</th><td id="requiredAfterFixed"></td></tr>
+        </tbody>
+      </table>
+
+      <h2>ライブ回数</h2>
+      <table>
+        <tbody>
+          <tr><th>通常ライブ1回あたり</th><td id="basePointPerLive"></td></tr>
+          <tr><th>みんなでライブ追加込み1回あたり</th><td id="pointWithMultiBonus"></td></tr>
+          <tr><th>みんなでライブ追加を使うライブ回数</th><td id="multiBonusLives"></td></tr>
+          <tr><th>追加なしの通常ライブ回数</th><td id="normalLives"></td></tr>
+          <tr><th>月末までに必要な最小ライブ回数</th><td id="requiredLives"></td></tr>
+        </tbody>
+      </table>
+
+      <h2>ライブボーナス</h2>
+      <table>
+        <tbody>
+          <tr><th>必要なライブボーナス数</th><td id="requiredLiveBonus"></td></tr>
+          <tr><th>月末までの自然回復ライブボーナス数</th><td id="naturalRecoveryBonus"></td></tr>
+          <tr><th>現在分を含めた使用可能ライブボーナス数</th><td id="availableLiveBonus"></td></tr>
+          <tr><th>アイテム等で回復が必要なライブボーナス数</th><td id="shortageLiveBonus"></td></tr>
+        </tbody>
+      </table>
+
+      <p class="note">
+        ※ 残り日数は、ブラウザを開いた端末の日付を基準に計算します。
+      </p>
+    </section>
+  </main>
+
+  <script>
+    const TARGET_POINT = 12000;
+
+    const POINT_TABLE = {
+      0: 1,
+      1: 5,
+      2: 10,
+      3: 15,
+      4: 20,
+      5: 25,
+      6: 26,
+      7: 27,
+      8: 28,
+      9: 29,
+      10: 30
+    };
+
+    const BONUS_RECOVERY_PER_DAY = 48;
+    const MULTI_LIVE_LIMIT_PER_DAY = 3;
+
+    function getRemainingDaysInMonth(includeToday = true) {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth();
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      const currentDay = today.getDate();
+
+      return includeToday ? lastDay - currentDay + 1 : lastDay - currentDay;
+    }
+
+    function applyPass(point, hasColorfulPass) {
+      return hasColorfulPass ? point * 2 : point;
+    }
+
+    function calculateDailyFixedPoints(
+      remainingDays,
+      hasColorfulPass,
+      doCm = true,
+      doChallengeLive = true,
+      multiLiveCountPerDay = 3
+    ) {
+      let dailyPoint = 0;
+
+      if (doCm) {
+        dailyPoint += 30;
+      }
+
+      if (doChallengeLive) {
+        dailyPoint += applyPass(30, hasColorfulPass);
+      }
+
+      const multiCount = Math.min(multiLiveCountPerDay, MULTI_LIVE_LIMIT_PER_DAY);
+      dailyPoint += applyPass(10, hasColorfulPass) * multiCount;
+
+      return dailyPoint * remainingDays;
+    }
+
+    function calculateMinimumLives(requiredPoint, basePointPerLive, multiBonusPerLive, remainingDays) {
+      if (requiredPoint <= 0) {
+        return {
+          requiredLives: 0,
+          multiBonusLives: 0,
+          normalLives: 0
+        };
+      }
+
+      const multiBonusLimit = remainingDays * MULTI_LIVE_LIMIT_PER_DAY;
+      const pointWithMultiBonus = basePointPerLive + multiBonusPerLive;
+
+      const livesWithBonusOnly = Math.ceil(requiredPoint / pointWithMultiBonus);
+
+      if (livesWithBonusOnly <= multiBonusLimit) {
+        return {
+          requiredLives: livesWithBonusOnly,
+          multiBonusLives: livesWithBonusOnly,
+          normalLives: 0
+        };
+      }
+
+      const pointFromBonusLives = pointWithMultiBonus * multiBonusLimit;
+      const remainingAfterBonusLives = requiredPoint - pointFromBonusLives;
+      const normalLives = Math.ceil(remainingAfterBonusLives / basePointPerLive);
+
+      return {
+        requiredLives: multiBonusLimit + normalLives,
+        multiBonusLives: multiBonusLimit,
+        normalLives: normalLives
+      };
+    }
+
+    function calculateLiveBonusUsage(requiredLives, bonusConsumption, currentLiveBonus, remainingDays) {
+      const requiredLiveBonus = requiredLives * bonusConsumption;
+      const naturalRecoveryBonus = remainingDays * BONUS_RECOVERY_PER_DAY;
+      const availableLiveBonus = currentLiveBonus + naturalRecoveryBonus;
+      const shortageLiveBonus = Math.max(requiredLiveBonus - availableLiveBonus, 0);
+
+      return {
+        requiredLiveBonus,
+        naturalRecoveryBonus,
+        availableLiveBonus,
+        shortageLiveBonus
+      };
+    }
+
+    function calculateRequiredPlan(
+      currentPoint,
+      currentLiveBonus,
+      bonusConsumption,
+      hasColorfulPass,
+      includeToday = true
+    ) {
+      if (!(bonusConsumption in POINT_TABLE)) {
+        throw new Error("ボーナス消費量は0〜10の範囲で選択してください。");
+      }
+
+      if (currentPoint < 0) {
+        throw new Error("現在のPは0以上で入力してください。");
+      }
+
+      if (currentLiveBonus < 0) {
+        throw new Error("現在のライブボーナス数は0以上で入力してください。");
+      }
+
+      const remainingDays = getRemainingDaysInMonth(includeToday);
+      const remainingPoint = TARGET_POINT - currentPoint;
+
+      if (remainingPoint <= 0) {
+        return {
+          remainingDays,
+          remainingPoint: 0,
+          fixedPoint: 0,
+          requiredAfterFixed: 0,
+          basePointPerLive: 0,
+          multiBonusPerLive: 0,
+          pointWithMultiBonus: 0,
+          requiredLives: 0,
+          multiBonusLives: 0,
+          normalLives: 0,
+          requiredLiveBonus: 0,
+          naturalRecoveryBonus: remainingDays * BONUS_RECOVERY_PER_DAY,
+          availableLiveBonus: currentLiveBonus + remainingDays * BONUS_RECOVERY_PER_DAY,
+          shortageLiveBonus: 0
+        };
+      }
+
+      const fixedPoint = calculateDailyFixedPoints(
+        remainingDays,
+        hasColorfulPass,
+        true,
+        true,
+        3
+      );
+
+      const requiredAfterFixedRaw = remainingPoint - fixedPoint;
+      const requiredAfterFixed = Math.max(requiredAfterFixedRaw, 0);
+
+      const basePointPerLive = applyPass(POINT_TABLE[bonusConsumption], hasColorfulPass);
+      const multiBonusPerLive = applyPass(10, hasColorfulPass);
+
+      const minimumLivesResult = calculateMinimumLives(
+        requiredAfterFixed,
+        basePointPerLive,
+        multiBonusPerLive,
+        remainingDays
+      );
+
+      const liveBonusResult = calculateLiveBonusUsage(
+        minimumLivesResult.requiredLives,
+        bonusConsumption,
+        currentLiveBonus,
+        remainingDays
+      );
+
+      return {
+        remainingDays,
+        remainingPoint,
+        fixedPoint,
+        requiredAfterFixed,
+        basePointPerLive,
+        multiBonusPerLive,
+        pointWithMultiBonus: basePointPerLive + multiBonusPerLive,
+        requiredLives: minimumLivesResult.requiredLives,
+        multiBonusLives: minimumLivesResult.multiBonusLives,
+        normalLives: minimumLivesResult.normalLives,
+        ...liveBonusResult
+      };
+    }
+
+    function setText(id, text) {
+      document.getElementById(id).textContent = text;
+    }
+
+    function hideError() {
+      const error = document.getElementById("error");
+      error.style.display = "none";
+      error.textContent = "";
+    }
+
+    function showError(message) {
+      const error = document.getElementById("error");
+      error.style.display = "block";
+      error.textContent = message;
+      document.getElementById("result").style.display = "none";
+    }
+
+    function onCalculate() {
+      hideError();
+
+      const currentPoint = Number(document.getElementById("currentPoint").value);
+      const currentLiveBonus = Number(document.getElementById("currentLiveBonus").value);
+      const bonusConsumption = Number(document.getElementById("bonusConsumption").value);
+      const hasColorfulPass = document.getElementById("hasColorfulPass").checked;
+      const todayDone = document.getElementById("todayDone").checked;
+      const includeToday = !todayDone;
+
+      try {
+        if (!Number.isFinite(currentPoint) || !Number.isInteger(currentPoint)) {
+          throw new Error("現在のPは整数で入力してください。");
+        }
+
+        if (!Number.isFinite(currentLiveBonus) || !Number.isInteger(currentLiveBonus)) {
+          throw new Error("現在のライブボーナス数は整数で入力してください。");
+        }
+
+        const result = calculateRequiredPlan(
+          currentPoint,
+          currentLiveBonus,
+          bonusConsumption,
+          hasColorfulPass,
+          includeToday
+        );
+
+        setText("requiredLivesSummary", result.requiredLives);
+        setText("targetPoint", `${TARGET_POINT}P`);
+        setText("displayCurrentPoint", `${currentPoint}P`);
+        setText("remainingDays", `${result.remainingDays}日`);
+        setText("remainingPoint", `${result.remainingPoint}P`);
+        setText("fixedPoint", `${result.fixedPoint}P`);
+        setText("requiredAfterFixed", `${result.requiredAfterFixed}P`);
+
+        setText("basePointPerLive", `${result.basePointPerLive}P`);
+        setText("pointWithMultiBonus", `${result.pointWithMultiBonus}P`);
+        setText("multiBonusLives", `${result.multiBonusLives}回`);
+        setText("normalLives", `${result.normalLives}回`);
+        setText("requiredLives", `${result.requiredLives}回`);
+
+        setText("requiredLiveBonus", result.requiredLiveBonus);
+        setText("naturalRecoveryBonus", result.naturalRecoveryBonus);
+        setText("availableLiveBonus", result.availableLiveBonus);
+        setText("shortageLiveBonus", result.shortageLiveBonus);
+
+        document.getElementById("result").style.display = "block";
+      } catch (error) {
+        showError(error.message);
+      }
+    }
+  </script>
+</body>
+</html>
