@@ -201,7 +201,7 @@
   <main class="container">
     <h1>月間ポイント計算ツール</h1>
     <p class="description">
-      現在のポイント、ライブボーナス、消費量などを入力すると、月末までに必要なライブ回数とライブボーナス不足分を計算します。
+      現在のポイント、消費量などを入力すると、現時刻から月末までの自然回復分で足りるかを含めて、月末までに必要なライブ回数を計算します。
     </p>
 
     <div class="form-grid">
@@ -211,11 +211,6 @@
         <div id="currentPointError" class="field-error">ミッションポイントは0〜11999の範囲で入力してください。</div>
       </div>
 
-      <div>
-        <label for="currentLiveBonus">現在のライブボーナス数</label>
-        <input id="currentLiveBonus" type="number" min="0" max="999" step="1" placeholder="例: 50" oninput="validateAllInputs()" />
-        <div id="currentLiveBonusError" class="field-error">現在のライブボーナス数は0〜999の範囲で入力してください。</div>
-      </div>
 
       <div>
         <label for="bonusConsumption">1回のライブボーナス消費量</label>
@@ -250,6 +245,17 @@
       </div>
 
       <div class="checkbox-row">
+        <input id="useEventBonusMission" type="checkbox" onchange="toggleEventBonusMissionInput(); validateAllInputs();" />
+        <label for="useEventBonusMission">イベントボーナスミッションを考慮する</label>
+      </div>
+
+      <div id="eventBonusMissionArea" style="display: none;">
+        <label for="eventBonusMissionPoint">イベントボーナスミッションで獲得予定のP</label>
+        <input id="eventBonusMissionPoint" type="number" min="0" max="11999" step="1" placeholder="例: 500" oninput="validateAllInputs()" />
+        <div id="eventBonusMissionPointError" class="field-error">イベントボーナスミッションで獲得予定のPは0〜11999の範囲で入力してください。</div>
+      </div>
+
+      <div class="checkbox-row">
         <input id="todayDone" type="checkbox" />
         <label for="todayDone">今日のCM・チャレンジライブ・みんなでライブ3回は消化済み</label>
       </div>
@@ -268,22 +274,21 @@
 
       <table>
         <tbody>
-          <tr><th>月間目標</th><td id="targetPoint"></td></tr>
           <tr><th>現在のP</th><td id="displayCurrentPoint"></td></tr>
           <tr><th>今月の残り日数</th><td id="remainingDays"></td></tr>
           <tr><th>目標までの残りP</th><td id="remainingPoint"></td></tr>
           <tr><th>残り日数で固定獲得できるP</th><td id="fixedPoint"></td></tr>
           <tr><th>固定分を引いた後に必要なP</th><td id="requiredAfterFixed"></td></tr>
+          <tr><th>イベントボーナスミッション予定P</th><td id="eventBonusMissionPointResult"></td></tr>
+          <tr><th>すべての固定分を引いた後に必要なP</th><td id="requiredAfterAllFixed"></td></tr>
         </tbody>
       </table>
 
       <h2>ライブ回数</h2>
       <table>
         <tbody>
-          <tr><th>ライブ1回あたり</th><td id="basePointPerLive"></td></tr>
-          <tr><th>みんなでライブ追加込み1回あたり</th><td id="pointWithMultiBonus"></td></tr>
-          <tr><th>みんなでライブ追加を使うライブ回数</th><td id="multiBonusLives"></td></tr>
-          <tr><th>追加なしの通常ライブ回数</th><td id="normalLives"></td></tr>
+          <tr><th>みんライボーナスが獲得可能な回数</th><td id="multiBonusLives"></td></tr>
+          <tr><th>ボーナスなしの通常ライブをする場合</th><td id="normalLives"></td></tr>
           <tr><th>月末までに必要な最小ライブ回数</th><td id="requiredLives"></td></tr>
         </tbody>
       </table>
@@ -293,13 +298,13 @@
         <tbody>
           <tr><th>必要なライブボーナス数</th><td id="requiredLiveBonus"></td></tr>
           <tr><th>月末までの自然回復ライブボーナス数</th><td id="naturalRecoveryBonus"></td></tr>
-          <tr><th>現在分を含めた使用可能ライブボーナス数</th><td id="availableLiveBonus"></td></tr>
-          <tr><th>アイテム等で回復が必要なライブボーナス数</th><td id="shortageLiveBonus"></td></tr>
+          <tr><th>自然回復のみで使用可能なライブボーナス数</th><td id="availableLiveBonus"></td></tr>
+          <tr><th>回復必要数</th><td id="shortageLiveBonus"></td></tr>
         </tbody>
       </table>
 
       <p class="note">
-        ※ 残り日数は、ブラウザを開いた端末の日付を基準に計算します。
+        ※ 残り日数と自然回復数は、ブラウザを開いた端末の日時を基準に計算します。自然回復は30分ごとに1回復として扱います。
       </p>
     </section>
   </main>
@@ -308,10 +313,11 @@
     const TARGET_POINT = 12000;
     const CURRENT_POINT_MIN = 0;
     const CURRENT_POINT_MAX = 11999;
-    const LIVE_BONUS_MIN = 0;
-    const LIVE_BONUS_MAX = 999;
+    const EVENT_BONUS_MISSION_POINT_MIN = 0;
+    const EVENT_BONUS_MISSION_POINT_MAX = 11999;
     const BONUS_CONSUMPTION_MIN = 0;
     const BONUS_CONSUMPTION_MAX = 10;
+    const LIVE_BONUS_RECOVERY_INTERVAL_MINUTES = 30;
 
     const POINT_TABLE = {
       0: 1,
@@ -338,6 +344,15 @@
       const currentDay = today.getDate();
 
       return includeToday ? lastDay - currentDay + 1 : lastDay - currentDay;
+    }
+
+    function getNaturalRecoveryBonusUntilEndOfMonth() {
+      const now = new Date();
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0);
+      const millisecondsUntilEndOfMonth = endOfMonth.getTime() - now.getTime();
+      const recoveryIntervalMilliseconds = LIVE_BONUS_RECOVERY_INTERVAL_MINUTES * 60 * 1000;
+
+      return Math.max(Math.floor(millisecondsUntilEndOfMonth / recoveryIntervalMilliseconds), 0);
     }
 
     function applyPass(point, hasColorfulPass) {
@@ -400,10 +415,10 @@
       };
     }
 
-    function calculateLiveBonusUsage(requiredLives, bonusConsumption, currentLiveBonus, remainingDays) {
+    function calculateLiveBonusUsage(requiredLives, bonusConsumption) {
       const requiredLiveBonus = requiredLives * bonusConsumption;
-      const naturalRecoveryBonus = remainingDays * BONUS_RECOVERY_PER_DAY;
-      const availableLiveBonus = currentLiveBonus + naturalRecoveryBonus;
+      const naturalRecoveryBonus = getNaturalRecoveryBonusUntilEndOfMonth();
+      const availableLiveBonus = naturalRecoveryBonus;
       const shortageLiveBonus = Math.max(requiredLiveBonus - availableLiveBonus, 0);
 
       return {
@@ -416,11 +431,11 @@
 
     function calculateRequiredPlan(
       currentPoint,
-      currentLiveBonus,
       bonusConsumption,
       hasColorfulPass,
       doCm,
       doMultiLive,
+      eventBonusMissionPoint,
       includeToday = true
     ) {
       if (!(bonusConsumption in POINT_TABLE)) {
@@ -431,9 +446,6 @@
         throw new Error(`ミッションポイントは${CURRENT_POINT_MIN}〜${CURRENT_POINT_MAX}の範囲で入力してください。`);
       }
 
-      if (currentLiveBonus < LIVE_BONUS_MIN || currentLiveBonus > LIVE_BONUS_MAX) {
-        throw new Error(`現在のライブボーナス数は${LIVE_BONUS_MIN}〜${LIVE_BONUS_MAX}の範囲で入力してください。`);
-      }
 
       const remainingDays = getRemainingDaysInMonth(includeToday);
       const remainingPoint = TARGET_POINT - currentPoint;
@@ -444,6 +456,8 @@
           remainingPoint: 0,
           fixedPoint: 0,
           requiredAfterFixed: 0,
+          eventBonusMissionPoint,
+          requiredAfterAllFixed: 0,
           basePointPerLive: 0,
           multiBonusPerLive: 0,
           pointWithMultiBonus: 0,
@@ -451,8 +465,8 @@
           multiBonusLives: 0,
           normalLives: 0,
           requiredLiveBonus: 0,
-          naturalRecoveryBonus: remainingDays * BONUS_RECOVERY_PER_DAY,
-          availableLiveBonus: currentLiveBonus + remainingDays * BONUS_RECOVERY_PER_DAY,
+          naturalRecoveryBonus: getNaturalRecoveryBonusUntilEndOfMonth(),
+          availableLiveBonus: getNaturalRecoveryBonusUntilEndOfMonth(),
           shortageLiveBonus: 0
         };
       }
@@ -467,12 +481,13 @@
 
       const requiredAfterFixedRaw = remainingPoint - fixedPoint;
       const requiredAfterFixed = Math.max(requiredAfterFixedRaw, 0);
+      const requiredAfterAllFixed = Math.max(requiredAfterFixed - eventBonusMissionPoint, 0);
 
       const basePointPerLive = applyPass(POINT_TABLE[bonusConsumption], hasColorfulPass);
       const multiBonusPerLive = applyPass(10, hasColorfulPass);
 
       const minimumLivesResult = calculateMinimumLives(
-        requiredAfterFixed,
+        requiredAfterAllFixed,
         basePointPerLive,
         multiBonusPerLive,
         remainingDays
@@ -480,9 +495,7 @@
 
       const liveBonusResult = calculateLiveBonusUsage(
         minimumLivesResult.requiredLives,
-        bonusConsumption,
-        currentLiveBonus,
-        remainingDays
+        bonusConsumption
       );
 
       return {
@@ -490,6 +503,8 @@
         remainingPoint,
         fixedPoint,
         requiredAfterFixed,
+        eventBonusMissionPoint,
+        requiredAfterAllFixed,
         basePointPerLive,
         multiBonusPerLive,
         pointWithMultiBonus: basePointPerLive + multiBonusPerLive,
@@ -554,6 +569,29 @@
       return true;
     }
 
+    function toggleEventBonusMissionInput() {
+      const useEventBonusMission = document.getElementById("useEventBonusMission").checked;
+      const area = document.getElementById("eventBonusMissionArea");
+      const input = document.getElementById("eventBonusMissionPoint");
+
+      area.style.display = useEventBonusMission ? "block" : "none";
+
+      if (!useEventBonusMission) {
+        input.value = "";
+        setFieldError("eventBonusMissionPoint", "eventBonusMissionPointError", "");
+      }
+    }
+
+    function getEventBonusMissionPointInput() {
+      const useEventBonusMission = document.getElementById("useEventBonusMission").checked;
+
+      if (!useEventBonusMission) {
+        return 0;
+      }
+
+      return Number(document.getElementById("eventBonusMissionPoint").value);
+    }
+
     function validateAllInputs() {
       const isCurrentPointValid = validateIntegerRange(
         "currentPoint",
@@ -563,16 +601,19 @@
         CURRENT_POINT_MAX
       );
 
-      const isCurrentLiveBonusValid = validateIntegerRange(
-        "currentLiveBonus",
-        "currentLiveBonusError",
-        "現在のライブボーナス数",
-        LIVE_BONUS_MIN,
-        LIVE_BONUS_MAX
-      );
+      const useEventBonusMission = document.getElementById("useEventBonusMission").checked;
+      const isEventBonusMissionPointValid = useEventBonusMission
+        ? validateIntegerRange(
+            "eventBonusMissionPoint",
+            "eventBonusMissionPointError",
+            "イベントボーナスミッションで獲得予定のP",
+            EVENT_BONUS_MISSION_POINT_MIN,
+            EVENT_BONUS_MISSION_POINT_MAX
+          )
+        : setFieldError("eventBonusMissionPoint", "eventBonusMissionPointError", "");
 
       const isBonusConsumptionValid = validateBonusConsumption();
-      const canCalculate = isCurrentPointValid && isCurrentLiveBonusValid && isBonusConsumptionValid;
+      const canCalculate = isCurrentPointValid && isEventBonusMissionPointValid && isBonusConsumptionValid;
       const calculateButton = document.getElementById("calculateButton");
 
       calculateButton.disabled = !canCalculate;
@@ -597,8 +638,8 @@
       hideError();
 
       const currentPoint = Number(document.getElementById("currentPoint").value);
-      const currentLiveBonus = Number(document.getElementById("currentLiveBonus").value);
       const bonusConsumption = Number(document.getElementById("bonusConsumption").value);
+      const eventBonusMissionPoint = getEventBonusMissionPointInput();
       const hasColorfulPass = document.getElementById("hasColorfulPass").checked;
       const doCm = document.getElementById("doCm").checked;
       const doMultiLive = document.getElementById("doMultiLive").checked;
@@ -614,17 +655,13 @@
           throw new Error("ミッションポイントは整数で入力してください。");
         }
 
-        if (!Number.isFinite(currentLiveBonus) || !Number.isInteger(currentLiveBonus)) {
-          throw new Error("現在のライブボーナス数は整数で入力してください。");
-        }
-
         const result = calculateRequiredPlan(
           currentPoint,
-          currentLiveBonus,
           bonusConsumption,
           hasColorfulPass,
           doCm,
           doMultiLive,
+          eventBonusMissionPoint,
           includeToday
         );
 
@@ -635,6 +672,8 @@
         setText("remainingPoint", `${result.remainingPoint}P`);
         setText("fixedPoint", `${result.fixedPoint}P`);
         setText("requiredAfterFixed", `${result.requiredAfterFixed}P`);
+        setText("eventBonusMissionPointResult", `${result.eventBonusMissionPoint}P`);
+        setText("requiredAfterAllFixed", `${result.requiredAfterAllFixed}P`);
 
         setText("basePointPerLive", `${result.basePointPerLive}P`);
         setText("pointWithMultiBonus", `${result.pointWithMultiBonus}P`);
@@ -653,6 +692,7 @@
       }
     }
 
+    toggleEventBonusMissionInput();
     validateAllInputs();
   </script>
 </body>
