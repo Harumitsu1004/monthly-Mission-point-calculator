@@ -200,13 +200,13 @@
     <div class="form-grid">
       <div>
         <label for="currentPoint">現在のP</label>
-        <input id="currentPoint" type="number" min="0" max="11999" step="1" value="900" oninput="validateAllInputs()" />
+        <input id="currentPoint" type="number" min="0" max="11999" step="1" value="0" oninput="validateAllInputs()" />
         <div id="currentPointError" class="field-error">ミッションポイントは0〜11999の範囲で入力してください。</div>
       </div>
 
       <div>
         <label for="currentLiveBonus">現在のライブボーナス数</label>
-        <input id="currentLiveBonus" type="number" min="0" max="999" step="1" value="50" oninput="validateAllInputs()" />
+        <input id="currentLiveBonus" type="number" min="0" max="999" step="1" value="0" oninput="validateAllInputs()" />
         <div id="currentLiveBonusError" class="field-error">現在のライブボーナス数は0〜999の範囲で入力してください。</div>
       </div>
 
@@ -214,11 +214,11 @@
         <label for="bonusConsumption">1回のライブボーナス消費量</label>
         <select id="bonusConsumption" onchange="validateAllInputs()">
           <option value="0">0</option>
-          <option value="1" selected>1</option>
+          <option value="1">1</option>
           <option value="2">2</option>
           <option value="3">3</option>
           <option value="4">4</option>
-          <option value="5">5</option>
+          <option value="5" selected>5</option>
           <option value="6">6</option>
           <option value="7">7</option>
           <option value="8">8</option>
@@ -273,7 +273,7 @@
       <h2>ライブ回数</h2>
       <table>
         <tbody>
-          <tr><th>通常ライブ1回あたり</th><td id="basePointPerLive"></td></tr>
+          <tr><th>ライブ1回あたり</th><td id="basePointPerLive"></td></tr>
           <tr><th>みんなでライブ追加込み1回あたり</th><td id="pointWithMultiBonus"></td></tr>
           <tr><th>みんなでライブ追加を使うライブ回数</th><td id="multiBonusLives"></td></tr>
           <tr><th>追加なしの通常ライブ回数</th><td id="normalLives"></td></tr>
