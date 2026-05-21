@@ -333,7 +333,6 @@
       10: 30
     };
 
-    const BONUS_RECOVERY_PER_DAY = 48;
     const MULTI_LIVE_LIMIT_PER_DAY = 3;
 
     function getRemainingDaysInMonth(includeToday = true) {
@@ -451,6 +450,8 @@
       const remainingPoint = TARGET_POINT - currentPoint;
 
       if (remainingPoint <= 0) {
+        const naturalRecoveryBonus = getNaturalRecoveryBonusUntilEndOfMonth();
+
         return {
           remainingDays,
           remainingPoint: 0,
@@ -465,8 +466,8 @@
           multiBonusLives: 0,
           normalLives: 0,
           requiredLiveBonus: 0,
-          naturalRecoveryBonus: getNaturalRecoveryBonusUntilEndOfMonth(),
-          availableLiveBonus: getNaturalRecoveryBonusUntilEndOfMonth(),
+          naturalRecoveryBonus,
+          availableLiveBonus: naturalRecoveryBonus,
           shortageLiveBonus: 0
         };
       }
