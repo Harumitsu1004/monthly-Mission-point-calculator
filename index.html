@@ -36,7 +36,7 @@
     .form-grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 16px;
+      gap: 11px;
     }
 
     label {
@@ -59,7 +59,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 10px 0;
+      padding: 5px 0;
     }
 
     .checkbox-row input {
@@ -70,6 +70,42 @@
     .checkbox-row label {
       margin: 0;
       font-weight: 600;
+    }
+
+    .bonus-row {
+      display: grid;
+      grid-template-columns: minmax(140px, 200px) 1fr;
+      gap: 14px;
+      align-items: end;
+    }
+
+    .inline-checkbox-row {
+      min-height: 43px;
+      padding-bottom: 0;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .subtle-option {
+      color: #777;
+    }
+
+    .subtle-option input {
+      accent-color: #8e8e93;
+      margin-top: 2px;
+    }
+
+    .subtle-option label {
+      color: #666;
+    }
+
+    .subtle-note {
+      display: block;
+      margin-top: 3px;
+      color: #8a8a8f;
+      font-size: 0.82rem;
+      line-height: 1.4;
+      font-weight: 500;
     }
 
     button {
@@ -147,6 +183,20 @@
       border-radius: 14px;
       padding: 16px;
       margin: 16px 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .summary-block {
+      text-align: left;
+    }
+
+    .summary-label {
+      display: block;
+      color: #555;
+      font-size: 0.95rem;
+      font-weight: 600;
     }
 
     .summary-card strong {
@@ -218,6 +268,20 @@
         font-size: 1.45rem;
       }
 
+      .bonus-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .summary-card {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .inline-checkbox-row {
+        min-height: 0;
+      }
+
       th, td {
         display: block;
         width: 100%;
@@ -255,22 +319,31 @@
         <div id="currentPointError" class="field-error">ミッションポイントは0〜12000の範囲で入力してください。</div>
       </div>
 
+      <div class="bonus-row">
+        <div>
+          <label for="bonusConsumption">1回のライブボーナス消費量</label>
+          <select id="bonusConsumption" onchange="onInputChange()">
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5" selected>5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+          </select>
+        </div>
 
-      <div>
-        <label for="bonusConsumption">1回のライブボーナス消費量</label>
-        <select id="bonusConsumption" onchange="onInputChange()">
-          <option value="0">0</option>
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4">4</option>
-          <option value="5" selected>5</option>
-          <option value="6">6</option>
-          <option value="7">7</option>
-          <option value="8">8</option>
-          <option value="9">9</option>
-          <option value="10">10</option>
-        </select>
+        <div class="checkbox-row inline-checkbox-row subtle-option">
+          <input id="useBonusConsumptionAsMax" type="checkbox" onchange="onInputChange()" />
+          <div>
+            <label for="useBonusConsumptionAsMax">上限として調整する</label>
+            <span class="subtle-note">同じ回数で済む範囲なら、使用LBを減らします。</span>
+          </div>
+        </div>
       </div>
 
       <div class="checkbox-row">
@@ -280,17 +353,17 @@
 
       <div class="checkbox-row">
         <input id="doCm" type="checkbox" onchange="onInputChange()" />
-        <label for="doCm">毎日CMを見る</label>
+        <label for="doCm">CMを見る</label>
       </div>
 
       <div class="checkbox-row">
         <input id="doChallengeLive" type="checkbox" onchange="onInputChange()" />
-        <label for="doChallengeLive">毎日チャレンジライブを行う</label>
+        <label for="doChallengeLive">チャレンジライブを行う</label>
       </div>
 
       <div class="checkbox-row">
         <input id="doMultiLive" type="checkbox" onchange="onInputChange()" />
-        <label for="doMultiLive">毎日みんなでライブを3回行う</label>
+        <label for="doMultiLive">みんなでライブを3回行う</label>
       </div>
 
       <div class="checkbox-row">
@@ -300,8 +373,8 @@
 
       <div id="eventBonusMissionArea" style="display: none;">
         <label for="eventBonusMissionPoint">イベントボーナスミッションで獲得予定のP</label>
-        <input id="eventBonusMissionPoint" type="number" min="0" max="11999" step="1" placeholder="例: 500" oninput="onInputChange()" />
-        <div id="eventBonusMissionPointError" class="field-error">イベントボーナスミッションで獲得予定のPは0〜11999の範囲で入力してください。</div>
+        <input id="eventBonusMissionPoint" type="number" min="0" max="1500" step="1" placeholder="例: 500" oninput="onInputChange()" />
+        <div id="eventBonusMissionPointError" class="field-error">イベントボーナスミッションで獲得予定のPは0〜1500の範囲で入力してください。</div>
       </div>
 
       <div class="checkbox-row">
@@ -319,8 +392,14 @@
     <section id="result" class="result">
       <h2>計算結果</h2>
       <div class="summary-card">
-        月末までに必要な最小ライブ回数
-        <strong><span id="requiredLivesSummary">0</span>回</strong>
+        <div class="summary-block">
+          <span class="summary-label">月末までに必要な最小ライブ回数</span>
+          <strong><span id="requiredLivesSummary">0</span>回</strong>
+        </div>
+        <div class="summary-block">
+          <span class="summary-label">使用LB</span>
+          <strong><span id="requiredLiveBonusSummary">0</span></strong>
+        </div>
       </div>
 
       <table>
@@ -330,7 +409,7 @@
           <tr><th>目標までの残りP</th><td id="remainingPoint"></td></tr>
           <tr><th>残り日数で固定獲得できるP</th><td id="fixedPoint"></td></tr>
           <tr><th>固定分を引いた後に必要なP</th><td id="requiredAfterFixed"></td></tr>
-          <tr><th>イベントボーナスミッション予定P</th><td id="eventBonusMissionPointResult"></td></tr>
+          <tr><th>イベントボーナスミッション適用P</th><td id="eventBonusMissionPointResult"></td></tr>
           <tr><th>すべての固定分を引いた後に必要なP</th><td id="requiredAfterAllFixed"></td></tr>
         </tbody>
       </table>
@@ -369,7 +448,7 @@
       </table>
 
       <p class="note">
-        ※ 残り日数と自然回復数は、ブラウザを開いた端末の日時を基準に計算します。自然回復は30分ごとに1回復として扱います。日別予定では、チェックした日課を優先枠として先に消化し、不足分を追加対応に割り当てます。
+        ※ 残り日数と自然回復数は、ブラウザを開いた端末の日時を基準に計算します。自然回復は30分ごとに1回復として扱います。日別予定では、チェックした日課を優先枠として先に消化し、不足分は選択した消費量の扱いに沿って追加対応へ割り当てます。
       </p>
     </section>
   </main>
@@ -379,10 +458,11 @@
     const CURRENT_POINT_MIN = 0;
     const CURRENT_POINT_MAX = 12000;
     const EVENT_BONUS_MISSION_POINT_MIN = 0;
-    const EVENT_BONUS_MISSION_POINT_MAX = 11999;
+    const EVENT_BONUS_MISSION_POINT_MAX = 1500;
     const BONUS_CONSUMPTION_MIN = 0;
     const BONUS_CONSUMPTION_MAX = 10;
     const LIVE_BONUS_RECOVERY_INTERVAL_MINUTES = 30;
+    const LIVE_BONUS_RECOVERY_PER_DAY = 48;
     const CM_POINT = 30;
     const CHALLENGE_LIVE_POINT = 30;
     const MULTI_LIVE_BONUS_POINT = 10;
@@ -454,10 +534,124 @@
       return dayPlan[type].length - 1;
     }
 
+    function buildMinimalConsumptionCounts(requiredPoint, liveCount, maxBonusConsumption, getPoint) {
+      const counts = {};
+      let remainingPoint = requiredPoint;
+      const maxPoint = getPoint(maxBonusConsumption);
+
+      for (let liveIndex = 0; liveIndex < liveCount; liveIndex += 1) {
+        const remainingLives = liveCount - liveIndex - 1;
+
+        for (let consumption = 0; consumption <= maxBonusConsumption; consumption += 1) {
+          const point = getPoint(consumption);
+
+          if (point + remainingLives * maxPoint >= remainingPoint) {
+            counts[consumption] = (counts[consumption] || 0) + 1;
+            remainingPoint -= point;
+            break;
+          }
+        }
+      }
+
+      return counts;
+    }
+
+    function expandConsumptionCounts(counts) {
+      return Object.keys(counts)
+        .map(Number)
+        .sort((a, b) => b - a)
+        .flatMap((consumption) => Array.from({ length: counts[consumption] }, () => consumption));
+    }
+
+    function formatLiveBonusDetail(consumptions) {
+      const counts = consumptions.reduce((accumulator, consumption) => {
+        accumulator[consumption] = (accumulator[consumption] || 0) + 1;
+        return accumulator;
+      }, {});
+
+      const consumptionsUsed = Object.keys(counts).map(Number).sort((a, b) => a - b);
+
+      if (consumptionsUsed.length === 1) {
+        return `LB消費${consumptionsUsed[0]}`;
+      }
+
+      return `LB消費内訳: ${consumptionsUsed.map((consumption) => `${consumption}×${counts[consumption]}回`).join("、")}`;
+    }
+
+    function getConsumptionCounts(requiredPoint, liveCount, bonusConsumption, useBonusConsumptionAsMax, getPoint) {
+      if (!useBonusConsumptionAsMax) {
+        return {
+          [bonusConsumption]: liveCount
+        };
+      }
+
+      return buildMinimalConsumptionCounts(requiredPoint, liveCount, bonusConsumption, getPoint);
+    }
+
+    function addNormalLiveActions(dailyPlans, requiredPoint, bonusConsumption, useBonusConsumptionAsMax, hasColorfulPass) {
+      if (requiredPoint <= 0) {
+        return;
+      }
+
+      const maxPointPerLive = getLivePoint(bonusConsumption, hasColorfulPass, false);
+      const liveCount = Math.ceil(requiredPoint / maxPointPerLive);
+      const counts = getConsumptionCounts(
+        requiredPoint,
+        liveCount,
+        bonusConsumption,
+        useBonusConsumptionAsMax,
+        (consumption) => getLivePoint(consumption, hasColorfulPass, false)
+      );
+      const consumptions = expandConsumptionCounts(counts);
+      let remainingPoint = requiredPoint;
+      let consumptionIndex = 0;
+
+      dailyPlans.forEach((dayPlan, dayIndex) => {
+        if (consumptionIndex >= consumptions.length) {
+          return;
+        }
+
+        const isLastDay = dayIndex === dailyPlans.length - 1;
+        const dayConsumptions = [];
+        let dayLiveBonus = 0;
+        let dayPoint = 0;
+
+        while (consumptionIndex < consumptions.length) {
+          const consumption = consumptions[consumptionIndex];
+          const nextLiveBonus = dayLiveBonus + consumption;
+
+          if (!isLastDay && dayConsumptions.length > 0 && nextLiveBonus > LIVE_BONUS_RECOVERY_PER_DAY) {
+            break;
+          }
+
+          dayConsumptions.push(consumption);
+          dayLiveBonus = nextLiveBonus;
+          dayPoint += getLivePoint(consumption, hasColorfulPass, false);
+          consumptionIndex += 1;
+        }
+
+        const appliedPoint = Math.min(dayPoint, remainingPoint);
+        const label = `通常ライブ${dayConsumptions.length}回（${formatLiveBonusDetail(dayConsumptions)}）`;
+
+        addPlanAction(
+          dayPlan,
+          "variableActions",
+          label,
+          appliedPoint,
+          dayConsumptions.length,
+          dayLiveBonus,
+          0,
+          dayConsumptions.length
+        );
+        remainingPoint -= appliedPoint;
+      });
+    }
+
     function createDailyPlans(
       remainingDays,
       currentPoint,
       bonusConsumption,
+      useBonusConsumptionAsMax,
       hasColorfulPass,
       doCm,
       doChallengeLive,
@@ -520,15 +714,14 @@
       });
 
       const requiredAfterFixed = remainingPoint;
+      const appliedEventBonusMissionPoint = Math.min(eventBonusMissionPoint, requiredAfterFixed);
 
-      if (eventBonusMissionPoint > 0 && remainingPoint > 0 && dailyPlans.length > 0) {
-        const point = Math.min(eventBonusMissionPoint, remainingPoint);
-        addPlanAction(dailyPlans[0], "fixedActions", "イベントボーナスミッション", point);
-        remainingPoint -= point;
+      if (appliedEventBonusMissionPoint > 0 && dailyPlans.length > 0) {
+        addPlanAction(dailyPlans[0], "fixedActions", "イベントボーナスミッション", appliedEventBonusMissionPoint);
+        remainingPoint -= appliedEventBonusMissionPoint;
       }
 
       const requiredAfterAllFixed = remainingPoint;
-      const pointPerNormalLive = getLivePoint(bonusConsumption, hasColorfulPass, false);
       const multiLiveUpgradePoint = bonusConsumption > 0
         ? getLivePoint(bonusConsumption, hasColorfulPass, true) - getMultiLiveFixedPoint(hasColorfulPass)
         : 0;
@@ -539,39 +732,34 @@
         }
 
         if (dayPlan.multiLiveFixedCount > 0 && multiLiveUpgradePoint > 0) {
-          const upgradedLives = Math.min(dayPlan.multiLiveFixedCount, Math.ceil(remainingPoint / multiLiveUpgradePoint));
-          const addedPoint = Math.min(upgradedLives * multiLiveUpgradePoint, remainingPoint);
+          const maxUpgradePoint = getLivePoint(bonusConsumption, hasColorfulPass, true) - getMultiLiveFixedPoint(hasColorfulPass);
+          const upgradedLives = Math.min(dayPlan.multiLiveFixedCount, Math.ceil(remainingPoint / maxUpgradePoint));
+          const upgradeCounts = getConsumptionCounts(
+            remainingPoint,
+            upgradedLives,
+            bonusConsumption,
+            useBonusConsumptionAsMax,
+            (consumption) => getLivePoint(consumption, hasColorfulPass, true) - getMultiLiveFixedPoint(hasColorfulPass)
+          );
+          const upgradeConsumptions = expandConsumptionCounts(upgradeCounts);
+          const addedPointRaw = upgradeConsumptions.reduce(
+            (sum, consumption) => sum + getLivePoint(consumption, hasColorfulPass, true) - getMultiLiveFixedPoint(hasColorfulPass),
+            0
+          );
+          const addedPoint = Math.min(addedPointRaw, remainingPoint);
           const totalMultiLivePoint = dayPlan.multiLiveFixedPoint + addedPoint;
-          const label = upgradedLives === dayPlan.multiLiveFixedCount
-            ? `みんライ${dayPlan.multiLiveFixedCount}回（LB消費${bonusConsumption}）`
-            : `みんライ${dayPlan.multiLiveFixedCount}回（うち${upgradedLives}回LB消費${bonusConsumption}）`;
+          const label = upgradeConsumptions.length === dayPlan.multiLiveFixedCount
+            ? `みんライ${dayPlan.multiLiveFixedCount}回（${formatLiveBonusDetail(upgradeConsumptions)}）`
+            : `みんライ${dayPlan.multiLiveFixedCount}回（うち${upgradeConsumptions.length}回${formatLiveBonusDetail(upgradeConsumptions)}）`;
 
           dayPlan.fixedActions[dayPlan.multiLiveFixedActionIndex] = `${label}（${totalMultiLivePoint}P）`;
           dayPlan.point += addedPoint;
-          dayPlan.liveBonus += upgradedLives * bonusConsumption;
+          dayPlan.liveBonus += upgradeConsumptions.reduce((sum, consumption) => sum + consumption, 0);
           remainingPoint -= addedPoint;
         }
-
-        if (remainingPoint <= 0) {
-          return;
-        }
-
-        const daysLeft = dailyPlans.length - index;
-        const livesToday = Math.ceil(remainingPoint / pointPerNormalLive / daysLeft);
-        const point = Math.min(livesToday * pointPerNormalLive, remainingPoint);
-
-        addPlanAction(
-          dayPlan,
-          "variableActions",
-          `通常ライブ${livesToday}回（LB消費${bonusConsumption}）`,
-          point,
-          livesToday,
-          livesToday * bonusConsumption,
-          0,
-          livesToday
-        );
-        remainingPoint -= point;
       });
+
+      addNormalLiveActions(dailyPlans, remainingPoint, bonusConsumption, useBonusConsumptionAsMax, hasColorfulPass);
 
       const totals = dailyPlans.reduce(
         (accumulator, dayPlan) => ({
@@ -594,7 +782,7 @@
         dailyPlans,
         fixedPoint,
         requiredAfterFixed,
-        eventBonusMissionPoint,
+        eventBonusMissionPoint: appliedEventBonusMissionPoint,
         requiredAfterAllFixed,
         requiredLives: totals.lives,
         multiBonusLives: totals.multiBonusLives,
@@ -606,6 +794,7 @@
     function calculateRequiredPlan(
       currentPoint,
       bonusConsumption,
+      useBonusConsumptionAsMax,
       hasColorfulPass,
       doCm,
       doChallengeLive,
@@ -653,6 +842,7 @@
         remainingDays,
         currentPoint,
         bonusConsumption,
+        useBonusConsumptionAsMax,
         hasColorfulPass,
         doCm,
         doChallengeLive,
@@ -713,7 +903,9 @@
       const dailyPlanBody = document.getElementById("dailyPlanBody");
       dailyPlanBody.innerHTML = "";
 
-      if (dailyPlans.length === 0) {
+      const visibleDailyPlans = dailyPlans.filter((dayPlan) => dayPlan.point > 0);
+
+      if (visibleDailyPlans.length === 0) {
         const row = document.createElement("tr");
         const cell = document.createElement("td");
         cell.colSpan = 5;
@@ -724,7 +916,7 @@
         return;
       }
 
-      dailyPlans.forEach((dayPlan) => {
+      visibleDailyPlans.forEach((dayPlan) => {
         const row = document.createElement("tr");
         const dateCell = document.createElement("th");
         const priorityCell = document.createElement("td");
@@ -879,6 +1071,7 @@
 
       const currentPoint = Number(document.getElementById("currentPoint").value);
       const bonusConsumption = Number(document.getElementById("bonusConsumption").value);
+      const useBonusConsumptionAsMax = document.getElementById("useBonusConsumptionAsMax").checked;
       const eventBonusMissionPoint = getEventBonusMissionPointInput();
       const hasColorfulPass = document.getElementById("hasColorfulPass").checked;
       const doCm = document.getElementById("doCm").checked;
@@ -899,6 +1092,7 @@
         const result = calculateRequiredPlan(
           currentPoint,
           bonusConsumption,
+          useBonusConsumptionAsMax,
           hasColorfulPass,
           doCm,
           doChallengeLive,
@@ -908,6 +1102,7 @@
         );
 
         setText("requiredLivesSummary", result.requiredLives);
+        setText("requiredLiveBonusSummary", result.requiredLiveBonus);
         setText("displayCurrentPoint", `${currentPoint}P`);
         setText("remainingDays", `${result.remainingDays}日`);
         setText("remainingPoint", `${result.remainingPoint}P`);
@@ -918,7 +1113,7 @@
 
         setText("multiBonusLives", `${result.multiBonusLives}回`);
         setText("normalLives", `${result.normalLives}回`);
-        setText("requiredLives", `${result.requiredLives}回`);
+        setText("requiredLives", `${result.requiredLives}回（使用LB ${result.requiredLiveBonus}）`);
 
         setText("requiredLiveBonus", result.requiredLiveBonus);
         setText("naturalRecoveryBonus", result.naturalRecoveryBonus);
