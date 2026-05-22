@@ -172,6 +172,23 @@
       line-height: 1.6;
     }
 
+    .plan-table th {
+      width: auto;
+    }
+
+    .plan-table td {
+      vertical-align: top;
+      line-height: 1.6;
+    }
+
+    .plan-actions {
+      color: #333;
+    }
+
+    .plan-empty {
+      color: #777;
+    }
+
     @media (max-width: 520px) {
       body {
         padding: 12px;
@@ -194,6 +211,17 @@
       td {
         padding-top: 0;
       }
+
+      .plan-table tr {
+        display: block;
+        padding: 10px 0;
+        border-bottom: 1px solid #e5e5ea;
+      }
+
+      .plan-table th,
+      .plan-table td {
+        border-bottom: 0;
+      }
     }
   </style>
 </head>
@@ -207,8 +235,8 @@
     <div class="form-grid">
       <div>
         <label for="currentPoint">現在のP</label>
-        <input id="currentPoint" type="number" min="0" max="11999" step="1" placeholder="例: 9000" oninput="validateAllInputs()" />
-        <div id="currentPointError" class="field-error">ミッションポイントは0〜11999の範囲で入力してください。</div>
+        <input id="currentPoint" type="number" min="0" max="12000" step="1" placeholder="例: 9000" oninput="validateAllInputs()" />
+        <div id="currentPointError" class="field-error">ミッションポイントは0〜12000の範囲で入力してください。</div>
       </div>
 
 
@@ -237,6 +265,11 @@
       <div class="checkbox-row">
         <input id="doCm" type="checkbox"/>
         <label for="doCm">毎日CMを見る</label>
+      </div>
+
+      <div class="checkbox-row">
+        <input id="doChallengeLive" type="checkbox"/>
+        <label for="doChallengeLive">毎日チャレンジライブを行う</label>
       </div>
 
       <div class="checkbox-row">
@@ -288,7 +321,7 @@
       <table>
         <tbody>
           <tr><th>みんライボーナスが獲得可能な回数</th><td id="multiBonusLives"></td></tr>
-          <tr><th>ボーナスなしの通常ライブをする場合</th><td id="normalLives"></td></tr>
+          <tr><th>通常ライブ回数</th><td id="normalLives"></td></tr>
           <tr><th>月末までに必要な最小ライブ回数</th><td id="requiredLives"></td></tr>
         </tbody>
       </table>
@@ -303,8 +336,22 @@
         </tbody>
       </table>
 
+      <h2>日別予定</h2>
+      <table class="plan-table">
+        <thead>
+          <tr>
+            <th>日付</th>
+            <th>固定枠</th>
+            <th>変動枠</th>
+            <th>獲得P</th>
+            <th>使用LB</th>
+          </tr>
+        </thead>
+        <tbody id="dailyPlanBody"></tbody>
+      </table>
+
       <p class="note">
-        ※ 残り日数と自然回復数は、ブラウザを開いた端末の日時を基準に計算します。自然回復は30分ごとに1回復として扱います。
+        ※ 残り日数と自然回復数は、ブラウザを開いた端末の日時を基準に計算します。自然回復は30分ごとに1回復として扱います。日別予定では、チェックした日課を固定枠として先に消化し、不足分を変動枠に割り当てます。
       </p>
     </section>
   </main>
@@ -312,12 +359,15 @@
   <script>
     const TARGET_POINT = 12000;
     const CURRENT_POINT_MIN = 0;
-    const CURRENT_POINT_MAX = 11999;
+    const CURRENT_POINT_MAX = 12000;
     const EVENT_BONUS_MISSION_POINT_MIN = 0;
     const EVENT_BONUS_MISSION_POINT_MAX = 11999;
     const BONUS_CONSUMPTION_MIN = 0;
     const BONUS_CONSUMPTION_MAX = 10;
     const LIVE_BONUS_RECOVERY_INTERVAL_MINUTES = 30;
+    const CM_POINT = 30;
+    const CHALLENGE_LIVE_POINT = 30;
+    const MULTI_LIVE_BONUS_POINT = 10;
 
     const POINT_TABLE = {
       0: 1,
@@ -358,73 +408,171 @@
       return hasColorfulPass ? point * 2 : point;
     }
 
-    function calculateDailyFixedPoints(
-      remainingDays,
-      hasColorfulPass,
-      doCm = true,
-      doChallengeLive = true,
-      multiLiveCountPerDay = 3
-    ) {
-      let dailyPoint = 0;
+    function getLivePoint(bonusConsumption, hasColorfulPass, hasMultiLiveBonus = false) {
+      const basePoint = POINT_TABLE[bonusConsumption];
+      const multiBonusPoint = hasMultiLiveBonus ? MULTI_LIVE_BONUS_POINT : 0;
 
-      if (doCm) {
-        dailyPoint += 30;
-      }
-
-      if (doChallengeLive) {
-        dailyPoint += applyPass(30, hasColorfulPass);
-      }
-
-      const multiCount = Math.min(multiLiveCountPerDay, MULTI_LIVE_LIMIT_PER_DAY);
-      dailyPoint += applyPass(10, hasColorfulPass) * multiCount;
-
-      return dailyPoint * remainingDays;
+      return applyPass(basePoint + multiBonusPoint, hasColorfulPass);
     }
 
-    function calculateMinimumLives(requiredPoint, basePointPerLive, multiBonusPerLive, remainingDays) {
-      if (requiredPoint <= 0) {
-        return {
-          requiredLives: 0,
+    function getPlanDateLabel(offsetDays) {
+      const date = new Date();
+      date.setDate(date.getDate() + offsetDays);
+      return `${date.getMonth() + 1}/${date.getDate()}`;
+    }
+
+    function addPlanAction(dayPlan, type, label, point, lives = 0, liveBonus = 0, multiBonusLives = 0, normalLives = 0) {
+      dayPlan[type].push(`${label}（${point}P）`);
+      dayPlan.point += point;
+      dayPlan.lives += lives;
+      dayPlan.liveBonus += liveBonus;
+      dayPlan.multiBonusLives += multiBonusLives;
+      dayPlan.normalLives += normalLives;
+    }
+
+    function createDailyPlans(
+      remainingDays,
+      currentPoint,
+      bonusConsumption,
+      hasColorfulPass,
+      doCm,
+      doChallengeLive,
+      doMultiLive,
+      eventBonusMissionPoint,
+      includeToday
+    ) {
+      const dailyPlans = Array.from({ length: remainingDays }, (_, index) => ({
+        dateLabel: getPlanDateLabel(index),
+        fixedActions: [],
+        variableActions: [],
+        point: 0,
+        lives: 0,
+        liveBonus: 0,
+        multiBonusLives: 0,
+        normalLives: 0
+      }));
+
+      let remainingPoint = Math.max(TARGET_POINT - currentPoint, 0);
+      let fixedPoint = 0;
+
+      dailyPlans.forEach((dayPlan, index) => {
+        if (remainingPoint <= 0) {
+          return;
+        }
+
+        if (!includeToday && index === 0) {
+          return;
+        }
+
+        if (doCm) {
+          const point = Math.min(CM_POINT, remainingPoint);
+          addPlanAction(dayPlan, "fixedActions", "CM", point);
+          fixedPoint += point;
+          remainingPoint -= point;
+        }
+
+        if (doChallengeLive && remainingPoint > 0) {
+          const fullPoint = applyPass(CHALLENGE_LIVE_POINT, hasColorfulPass);
+          const point = Math.min(fullPoint, remainingPoint);
+          addPlanAction(dayPlan, "fixedActions", "チャレンジライブ", point);
+          fixedPoint += point;
+          remainingPoint -= point;
+        }
+
+        if (doMultiLive && remainingPoint > 0) {
+          const pointPerLive = getLivePoint(0, hasColorfulPass, true);
+          for (let count = 1; count <= MULTI_LIVE_LIMIT_PER_DAY && remainingPoint > 0; count += 1) {
+            const point = Math.min(pointPerLive, remainingPoint);
+            addPlanAction(dayPlan, "fixedActions", `みんなでライブ${count}回目（LB消費0）`, point, 1, 0, 1, 0);
+            fixedPoint += point;
+            remainingPoint -= point;
+          }
+        }
+      });
+
+      const requiredAfterFixed = remainingPoint;
+
+      if (eventBonusMissionPoint > 0 && remainingPoint > 0 && dailyPlans.length > 0) {
+        const point = Math.min(eventBonusMissionPoint, remainingPoint);
+        addPlanAction(dailyPlans[0], "fixedActions", "イベントボーナスミッション", point);
+        remainingPoint -= point;
+      }
+
+      const requiredAfterAllFixed = remainingPoint;
+      const pointPerMultiBonusLive = getLivePoint(bonusConsumption, hasColorfulPass, true);
+      const pointPerNormalLive = getLivePoint(bonusConsumption, hasColorfulPass, false);
+
+      dailyPlans.forEach((dayPlan, index) => {
+        if (remainingPoint <= 0) {
+          return;
+        }
+
+        const usedMultiSlots = doMultiLive ? MULTI_LIVE_LIMIT_PER_DAY : 0;
+        const remainingMultiSlots = Math.max(MULTI_LIVE_LIMIT_PER_DAY - usedMultiSlots, 0);
+
+        for (let count = 1; count <= remainingMultiSlots && remainingPoint > 0; count += 1) {
+          const point = Math.min(pointPerMultiBonusLive, remainingPoint);
+          addPlanAction(
+            dayPlan,
+            "variableActions",
+            `みんなでライブ追加${count}回（LB消費${bonusConsumption}）`,
+            point,
+            1,
+            bonusConsumption,
+            1,
+            0
+          );
+          remainingPoint -= point;
+        }
+
+        if (remainingPoint <= 0) {
+          return;
+        }
+
+        const daysLeft = dailyPlans.length - index;
+        const livesToday = Math.ceil(remainingPoint / pointPerNormalLive / daysLeft);
+        const point = Math.min(livesToday * pointPerNormalLive, remainingPoint);
+
+        addPlanAction(
+          dayPlan,
+          "variableActions",
+          `通常ライブ${livesToday}回（LB消費${bonusConsumption}）`,
+          point,
+          livesToday,
+          livesToday * bonusConsumption,
+          0,
+          livesToday
+        );
+        remainingPoint -= point;
+      });
+
+      const totals = dailyPlans.reduce(
+        (accumulator, dayPlan) => ({
+          point: accumulator.point + dayPlan.point,
+          lives: accumulator.lives + dayPlan.lives,
+          liveBonus: accumulator.liveBonus + dayPlan.liveBonus,
+          multiBonusLives: accumulator.multiBonusLives + dayPlan.multiBonusLives,
+          normalLives: accumulator.normalLives + dayPlan.normalLives
+        }),
+        {
+          point: 0,
+          lives: 0,
+          liveBonus: 0,
           multiBonusLives: 0,
           normalLives: 0
-        };
-      }
-
-      const multiBonusLimit = remainingDays * MULTI_LIVE_LIMIT_PER_DAY;
-      const pointWithMultiBonus = basePointPerLive + multiBonusPerLive;
-
-      const livesWithBonusOnly = Math.ceil(requiredPoint / pointWithMultiBonus);
-
-      if (livesWithBonusOnly <= multiBonusLimit) {
-        return {
-          requiredLives: livesWithBonusOnly,
-          multiBonusLives: livesWithBonusOnly,
-          normalLives: 0
-        };
-      }
-
-      const pointFromBonusLives = pointWithMultiBonus * multiBonusLimit;
-      const remainingAfterBonusLives = requiredPoint - pointFromBonusLives;
-      const normalLives = Math.ceil(remainingAfterBonusLives / basePointPerLive);
+        }
+      );
 
       return {
-        requiredLives: multiBonusLimit + normalLives,
-        multiBonusLives: multiBonusLimit,
-        normalLives: normalLives
-      };
-    }
-
-    function calculateLiveBonusUsage(requiredLives, bonusConsumption) {
-      const requiredLiveBonus = requiredLives * bonusConsumption;
-      const naturalRecoveryBonus = getNaturalRecoveryBonusUntilEndOfMonth();
-      const availableLiveBonus = naturalRecoveryBonus;
-      const shortageLiveBonus = Math.max(requiredLiveBonus - availableLiveBonus, 0);
-
-      return {
-        requiredLiveBonus,
-        naturalRecoveryBonus,
-        availableLiveBonus,
-        shortageLiveBonus
+        dailyPlans,
+        fixedPoint,
+        requiredAfterFixed,
+        eventBonusMissionPoint,
+        requiredAfterAllFixed,
+        requiredLives: totals.lives,
+        multiBonusLives: totals.multiBonusLives,
+        normalLives: totals.normalLives,
+        requiredLiveBonus: totals.liveBonus
       };
     }
 
@@ -433,6 +581,7 @@
       bonusConsumption,
       hasColorfulPass,
       doCm,
+      doChallengeLive,
       doMultiLive,
       eventBonusMissionPoint,
       includeToday = true
@@ -446,7 +595,7 @@
       }
 
 
-      const remainingDays = getRemainingDaysInMonth(includeToday);
+      const remainingDays = getRemainingDaysInMonth(true);
       const remainingPoint = TARGET_POINT - currentPoint;
 
       if (remainingPoint <= 0) {
@@ -468,56 +617,90 @@
           requiredLiveBonus: 0,
           naturalRecoveryBonus,
           availableLiveBonus: naturalRecoveryBonus,
-          shortageLiveBonus: 0
+          shortageLiveBonus: 0,
+          dailyPlans: []
         };
       }
 
-      const fixedPoint = calculateDailyFixedPoints(
+      const planResult = createDailyPlans(
         remainingDays,
+        currentPoint,
+        bonusConsumption,
         hasColorfulPass,
         doCm,
-        true,
-        doMultiLive ? 3 : 0
+        doChallengeLive,
+        doMultiLive,
+        eventBonusMissionPoint,
+        includeToday
       );
-
-      const requiredAfterFixedRaw = remainingPoint - fixedPoint;
-      const requiredAfterFixed = Math.max(requiredAfterFixedRaw, 0);
-      const requiredAfterAllFixed = Math.max(requiredAfterFixed - eventBonusMissionPoint, 0);
 
       const basePointPerLive = applyPass(POINT_TABLE[bonusConsumption], hasColorfulPass);
-      const multiBonusPerLive = applyPass(10, hasColorfulPass);
-
-      const minimumLivesResult = calculateMinimumLives(
-        requiredAfterAllFixed,
-        basePointPerLive,
-        multiBonusPerLive,
-        remainingDays
-      );
-
-      const liveBonusResult = calculateLiveBonusUsage(
-        minimumLivesResult.requiredLives,
-        bonusConsumption
-      );
+      const multiBonusPerLive = applyPass(MULTI_LIVE_BONUS_POINT, hasColorfulPass);
+      const naturalRecoveryBonus = getNaturalRecoveryBonusUntilEndOfMonth();
+      const availableLiveBonus = naturalRecoveryBonus;
+      const shortageLiveBonus = Math.max(planResult.requiredLiveBonus - availableLiveBonus, 0);
 
       return {
         remainingDays,
         remainingPoint,
-        fixedPoint,
-        requiredAfterFixed,
-        eventBonusMissionPoint,
-        requiredAfterAllFixed,
+        fixedPoint: planResult.fixedPoint,
+        requiredAfterFixed: planResult.requiredAfterFixed,
+        eventBonusMissionPoint: planResult.eventBonusMissionPoint,
+        requiredAfterAllFixed: planResult.requiredAfterAllFixed,
         basePointPerLive,
         multiBonusPerLive,
         pointWithMultiBonus: basePointPerLive + multiBonusPerLive,
-        requiredLives: minimumLivesResult.requiredLives,
-        multiBonusLives: minimumLivesResult.multiBonusLives,
-        normalLives: minimumLivesResult.normalLives,
-        ...liveBonusResult
+        requiredLives: planResult.requiredLives,
+        multiBonusLives: planResult.multiBonusLives,
+        normalLives: planResult.normalLives,
+        requiredLiveBonus: planResult.requiredLiveBonus,
+        naturalRecoveryBonus,
+        availableLiveBonus,
+        shortageLiveBonus,
+        dailyPlans: planResult.dailyPlans
       };
     }
 
     function setText(id, text) {
       document.getElementById(id).textContent = text;
+    }
+
+    function renderDailyPlans(dailyPlans) {
+      const dailyPlanBody = document.getElementById("dailyPlanBody");
+      dailyPlanBody.innerHTML = "";
+
+      if (dailyPlans.length === 0) {
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+        cell.colSpan = 5;
+        cell.className = "plan-empty";
+        cell.textContent = "追加の予定はありません。";
+        row.appendChild(cell);
+        dailyPlanBody.appendChild(row);
+        return;
+      }
+
+      dailyPlans.forEach((dayPlan) => {
+        const row = document.createElement("tr");
+        const values = [
+          dayPlan.dateLabel,
+          dayPlan.fixedActions.length > 0 ? dayPlan.fixedActions.join(" / ") : "なし",
+          dayPlan.variableActions.length > 0 ? dayPlan.variableActions.join(" / ") : "なし",
+          `${dayPlan.point}P`,
+          dayPlan.liveBonus
+        ];
+
+        values.forEach((value, index) => {
+          const cell = document.createElement(index === 0 ? "th" : "td");
+          cell.textContent = value;
+          if (index === 1 || index === 2) {
+            cell.className = value === "なし" ? "plan-empty" : "plan-actions";
+          }
+          row.appendChild(cell);
+        });
+
+        dailyPlanBody.appendChild(row);
+      });
     }
 
     function setFieldError(inputId, errorId, message) {
@@ -643,6 +826,7 @@
       const eventBonusMissionPoint = getEventBonusMissionPointInput();
       const hasColorfulPass = document.getElementById("hasColorfulPass").checked;
       const doCm = document.getElementById("doCm").checked;
+      const doChallengeLive = document.getElementById("doChallengeLive").checked;
       const doMultiLive = document.getElementById("doMultiLive").checked;
       const todayDone = document.getElementById("todayDone").checked;
       const includeToday = !todayDone;
@@ -661,6 +845,7 @@
           bonusConsumption,
           hasColorfulPass,
           doCm,
+          doChallengeLive,
           doMultiLive,
           eventBonusMissionPoint,
           includeToday
@@ -683,6 +868,7 @@
         setText("naturalRecoveryBonus", result.naturalRecoveryBonus);
         setText("availableLiveBonus", result.availableLiveBonus);
         setText("shortageLiveBonus", result.shortageLiveBonus);
+        renderDailyPlans(result.dailyPlans);
 
         document.getElementById("result").style.display = "block";
       } catch (error) {
