@@ -73,12 +73,10 @@
     }
 
     button {
-      margin-top: 22px;
-      width: 100%;
       border: none;
-      border-radius: 12px;
-      padding: 14px;
-      font-size: 1.05rem;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 0.9rem;
       font-weight: 700;
       background: #007aff;
       color: white;
@@ -94,6 +92,16 @@
       color: #ffffff;
       cursor: not-allowed;
       opacity: 1;
+    }
+
+    .refresh-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 14px;
+    }
+
+    .refresh-button {
+      width: auto;
     }
 
     .error {
@@ -185,6 +193,14 @@
       color: #333;
     }
 
+    .plan-action {
+      display: block;
+    }
+
+    .plan-action + .plan-action {
+      margin-top: 4px;
+    }
+
     .plan-empty {
       color: #777;
     }
@@ -235,14 +251,14 @@
     <div class="form-grid">
       <div>
         <label for="currentPoint">現在のP</label>
-        <input id="currentPoint" type="number" min="0" max="12000" step="1" placeholder="例: 9000" oninput="validateAllInputs()" />
+        <input id="currentPoint" type="number" min="0" max="12000" step="1" placeholder="例: 9000" oninput="onInputChange()" />
         <div id="currentPointError" class="field-error">ミッションポイントは0〜12000の範囲で入力してください。</div>
       </div>
 
 
       <div>
         <label for="bonusConsumption">1回のライブボーナス消費量</label>
-        <select id="bonusConsumption" onchange="validateAllInputs()">
+        <select id="bonusConsumption" onchange="onInputChange()">
           <option value="0">0</option>
           <option value="1">1</option>
           <option value="2">2</option>
@@ -258,43 +274,45 @@
       </div>
 
       <div class="checkbox-row">
-        <input id="hasColorfulPass" type="checkbox"/>
+        <input id="hasColorfulPass" type="checkbox" onchange="onInputChange()" />
         <label for="hasColorfulPass">カラフルパスを所持している</label>
       </div>
 
       <div class="checkbox-row">
-        <input id="doCm" type="checkbox"/>
+        <input id="doCm" type="checkbox" onchange="onInputChange()" />
         <label for="doCm">毎日CMを見る</label>
       </div>
 
       <div class="checkbox-row">
-        <input id="doChallengeLive" type="checkbox"/>
+        <input id="doChallengeLive" type="checkbox" onchange="onInputChange()" />
         <label for="doChallengeLive">毎日チャレンジライブを行う</label>
       </div>
 
       <div class="checkbox-row">
-        <input id="doMultiLive" type="checkbox"/>
+        <input id="doMultiLive" type="checkbox" onchange="onInputChange()" />
         <label for="doMultiLive">毎日みんなでライブを3回行う</label>
       </div>
 
       <div class="checkbox-row">
-        <input id="useEventBonusMission" type="checkbox" onchange="toggleEventBonusMissionInput(); validateAllInputs();" />
+        <input id="useEventBonusMission" type="checkbox" onchange="toggleEventBonusMissionInput(); onInputChange();" />
         <label for="useEventBonusMission">イベントボーナスミッションを考慮する</label>
       </div>
 
       <div id="eventBonusMissionArea" style="display: none;">
         <label for="eventBonusMissionPoint">イベントボーナスミッションで獲得予定のP</label>
-        <input id="eventBonusMissionPoint" type="number" min="0" max="11999" step="1" placeholder="例: 500" oninput="validateAllInputs()" />
+        <input id="eventBonusMissionPoint" type="number" min="0" max="11999" step="1" placeholder="例: 500" oninput="onInputChange()" />
         <div id="eventBonusMissionPointError" class="field-error">イベントボーナスミッションで獲得予定のPは0〜11999の範囲で入力してください。</div>
       </div>
 
       <div class="checkbox-row">
-        <input id="todayDone" type="checkbox" />
+        <input id="todayDone" type="checkbox" onchange="onInputChange()" />
         <label for="todayDone">今日のCM・チャレンジライブ・みんなでライブ3回は消化済み</label>
       </div>
     </div>
 
-    <button id="calculateButton" type="button" onclick="onCalculate()" disabled>計算する</button>
+    <div class="refresh-row">
+      <button id="calculateButton" class="refresh-button" type="button" onclick="onCalculate()" disabled>現在時刻で更新</button>
+    </div>
 
     <div id="error" class="error"></div>
 
@@ -320,9 +338,9 @@
       <h2>ライブ回数</h2>
       <table>
         <tbody>
-          <tr><th>みんライボーナスが獲得可能な回数</th><td id="multiBonusLives"></td></tr>
+          <tr><th>みんライ回数</th><td id="multiBonusLives"></td></tr>
           <tr><th>通常ライブ回数</th><td id="normalLives"></td></tr>
-          <tr><th>月末までに必要な最小ライブ回数</th><td id="requiredLives"></td></tr>
+          <tr><th>合計ライブ回数（みんライ含む）</th><td id="requiredLives"></td></tr>
         </tbody>
       </table>
 
@@ -341,8 +359,8 @@
         <thead>
           <tr>
             <th>日付</th>
-            <th>固定枠</th>
-            <th>変動枠</th>
+            <th>優先枠</th>
+            <th>不足分の追加対応</th>
             <th>獲得P</th>
             <th>使用LB</th>
           </tr>
@@ -351,7 +369,7 @@
       </table>
 
       <p class="note">
-        ※ 残り日数と自然回復数は、ブラウザを開いた端末の日時を基準に計算します。自然回復は30分ごとに1回復として扱います。日別予定では、チェックした日課を固定枠として先に消化し、不足分を変動枠に割り当てます。
+        ※ 残り日数と自然回復数は、ブラウザを開いた端末の日時を基準に計算します。自然回復は30分ごとに1回復として扱います。日別予定では、チェックした日課を優先枠として先に消化し、不足分を追加対応に割り当てます。
       </p>
     </section>
   </main>
@@ -415,6 +433,10 @@
       return applyPass(basePoint + multiBonusPoint, hasColorfulPass);
     }
 
+    function getMultiLiveFixedPoint(hasColorfulPass) {
+      return applyPass(MULTI_LIVE_BONUS_POINT, hasColorfulPass);
+    }
+
     function getPlanDateLabel(offsetDays) {
       const date = new Date();
       date.setDate(date.getDate() + offsetDays);
@@ -428,6 +450,8 @@
       dayPlan.liveBonus += liveBonus;
       dayPlan.multiBonusLives += multiBonusLives;
       dayPlan.normalLives += normalLives;
+
+      return dayPlan[type].length - 1;
     }
 
     function createDailyPlans(
@@ -449,7 +473,10 @@
         lives: 0,
         liveBonus: 0,
         multiBonusLives: 0,
-        normalLives: 0
+        normalLives: 0,
+        multiLiveFixedActionIndex: null,
+        multiLiveFixedCount: 0,
+        multiLiveFixedPoint: 0
       }));
 
       let remainingPoint = Math.max(TARGET_POINT - currentPoint, 0);
@@ -480,13 +507,15 @@
         }
 
         if (doMultiLive && remainingPoint > 0) {
-          const pointPerLive = getLivePoint(0, hasColorfulPass, true);
-          for (let count = 1; count <= MULTI_LIVE_LIMIT_PER_DAY && remainingPoint > 0; count += 1) {
-            const point = Math.min(pointPerLive, remainingPoint);
-            addPlanAction(dayPlan, "fixedActions", `みんなでライブ${count}回目（LB消費0）`, point, 1, 0, 1, 0);
-            fixedPoint += point;
-            remainingPoint -= point;
-          }
+          const pointPerLive = getMultiLiveFixedPoint(hasColorfulPass);
+          const multiLiveCount = Math.min(MULTI_LIVE_LIMIT_PER_DAY, Math.ceil(remainingPoint / pointPerLive));
+          const point = Math.min(pointPerLive * multiLiveCount, remainingPoint);
+
+          dayPlan.multiLiveFixedActionIndex = addPlanAction(dayPlan, "fixedActions", `みんライ${multiLiveCount}回（LB消費0）`, point, multiLiveCount, 0, multiLiveCount, 0);
+          dayPlan.multiLiveFixedCount = multiLiveCount;
+          dayPlan.multiLiveFixedPoint = point;
+          fixedPoint += point;
+          remainingPoint -= point;
         }
       });
 
@@ -499,30 +528,28 @@
       }
 
       const requiredAfterAllFixed = remainingPoint;
-      const pointPerMultiBonusLive = getLivePoint(bonusConsumption, hasColorfulPass, true);
       const pointPerNormalLive = getLivePoint(bonusConsumption, hasColorfulPass, false);
+      const multiLiveUpgradePoint = bonusConsumption > 0
+        ? getLivePoint(bonusConsumption, hasColorfulPass, true) - getMultiLiveFixedPoint(hasColorfulPass)
+        : 0;
 
       dailyPlans.forEach((dayPlan, index) => {
         if (remainingPoint <= 0) {
           return;
         }
 
-        const usedMultiSlots = doMultiLive ? MULTI_LIVE_LIMIT_PER_DAY : 0;
-        const remainingMultiSlots = Math.max(MULTI_LIVE_LIMIT_PER_DAY - usedMultiSlots, 0);
+        if (dayPlan.multiLiveFixedCount > 0 && multiLiveUpgradePoint > 0) {
+          const upgradedLives = Math.min(dayPlan.multiLiveFixedCount, Math.ceil(remainingPoint / multiLiveUpgradePoint));
+          const addedPoint = Math.min(upgradedLives * multiLiveUpgradePoint, remainingPoint);
+          const totalMultiLivePoint = dayPlan.multiLiveFixedPoint + addedPoint;
+          const label = upgradedLives === dayPlan.multiLiveFixedCount
+            ? `みんライ${dayPlan.multiLiveFixedCount}回（LB消費${bonusConsumption}）`
+            : `みんライ${dayPlan.multiLiveFixedCount}回（うち${upgradedLives}回LB消費${bonusConsumption}）`;
 
-        for (let count = 1; count <= remainingMultiSlots && remainingPoint > 0; count += 1) {
-          const point = Math.min(pointPerMultiBonusLive, remainingPoint);
-          addPlanAction(
-            dayPlan,
-            "variableActions",
-            `みんなでライブ追加${count}回（LB消費${bonusConsumption}）`,
-            point,
-            1,
-            bonusConsumption,
-            1,
-            0
-          );
-          remainingPoint -= point;
+          dayPlan.fixedActions[dayPlan.multiLiveFixedActionIndex] = `${label}（${totalMultiLivePoint}P）`;
+          dayPlan.point += addedPoint;
+          dayPlan.liveBonus += upgradedLives * bonusConsumption;
+          remainingPoint -= addedPoint;
         }
 
         if (remainingPoint <= 0) {
@@ -665,6 +692,23 @@
       document.getElementById(id).textContent = text;
     }
 
+    function appendActionLines(cell, actions) {
+      if (actions.length === 0) {
+        cell.className = "plan-empty";
+        cell.textContent = "なし";
+        return;
+      }
+
+      cell.className = "plan-actions";
+
+      actions.forEach((action) => {
+        const line = document.createElement("span");
+        line.className = "plan-action";
+        line.textContent = action;
+        cell.appendChild(line);
+      });
+    }
+
     function renderDailyPlans(dailyPlans) {
       const dailyPlanBody = document.getElementById("dailyPlanBody");
       dailyPlanBody.innerHTML = "";
@@ -682,22 +726,23 @@
 
       dailyPlans.forEach((dayPlan) => {
         const row = document.createElement("tr");
-        const values = [
-          dayPlan.dateLabel,
-          dayPlan.fixedActions.length > 0 ? dayPlan.fixedActions.join(" / ") : "なし",
-          dayPlan.variableActions.length > 0 ? dayPlan.variableActions.join(" / ") : "なし",
-          `${dayPlan.point}P`,
-          dayPlan.liveBonus
-        ];
+        const dateCell = document.createElement("th");
+        const priorityCell = document.createElement("td");
+        const additionalCell = document.createElement("td");
+        const pointCell = document.createElement("td");
+        const liveBonusCell = document.createElement("td");
 
-        values.forEach((value, index) => {
-          const cell = document.createElement(index === 0 ? "th" : "td");
-          cell.textContent = value;
-          if (index === 1 || index === 2) {
-            cell.className = value === "なし" ? "plan-empty" : "plan-actions";
-          }
-          row.appendChild(cell);
-        });
+        dateCell.textContent = dayPlan.dateLabel;
+        appendActionLines(priorityCell, dayPlan.fixedActions);
+        appendActionLines(additionalCell, dayPlan.variableActions);
+        pointCell.textContent = `${dayPlan.point}P`;
+        liveBonusCell.textContent = dayPlan.liveBonus;
+
+        row.appendChild(dateCell);
+        row.appendChild(priorityCell);
+        row.appendChild(additionalCell);
+        row.appendChild(pointCell);
+        row.appendChild(liveBonusCell);
 
         dailyPlanBody.appendChild(row);
       });
@@ -803,6 +848,17 @@
       calculateButton.disabled = !canCalculate;
 
       return canCalculate;
+    }
+
+    function onInputChange() {
+      hideError();
+
+      if (!validateAllInputs()) {
+        document.getElementById("result").style.display = "none";
+        return;
+      }
+
+      onCalculate();
     }
 
     function hideError() {
